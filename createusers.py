@@ -63,8 +63,11 @@ with open(filename, 'r') as f:
 
 #Twingate-CLI
 
+logintenat = os.environ["TG_TENANT"]
+loginapi = os.environ["TG_API"]
 
-loginoutput = subprocess.check_output('python3 ./tgcli.py auth login -t os.environ["TG_TENANT"] -a os.environ["TG_API"]', shell=True)
+
+loginoutput = subprocess.check_output('python3 ./tgcli.py auth login -t ' + logintenat + ' -a ' + loginapi, shell=True)
 session = loginoutput.decode("utf-8").split(":")[1].strip()
 print(session)
 
@@ -80,7 +83,7 @@ with open(filename, 'r') as f:
     print(f"First name:{newFirst}, Last name:{newLast}, Email:{newUserEmail}")
     command = ["python3", "./tgcli.py", "-s", session, "user", "create", "-e", newUserEmail, "-r", "MEMBER", "-s", "true", "-f", newFirst, "-l", newLast]
     subprocess.call(command)
-    #subprocess.call(command, shell=True)
 
-
+command2 = ["python3", "./tgcli.py", "auth", "logout", "-s", session]
+subprocess.call(command2)
 

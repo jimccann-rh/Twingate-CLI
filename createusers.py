@@ -49,7 +49,7 @@ with open(filename, 'r') as f:
         newUserPassword += secrets.choice(symbols)
       # Creating new group and user
       govc_runner("govc sso.group.create " + newGroup)
-      govc_runner("govc sso.user.create -m '" + newUserEmail + "' -p '" + newUserPassword + "' '" + newUserUsername + "'")
+      govc_runner("govc sso.user.create -f '" + newFirst + "' -l '" + newLast + "' -m '" + newUserEmail + "' -p '" + newUserPassword + "' '" + newUserUsername + "'")
       govc_runner("govc sso.group.update -a " + newUserUsername + " " + newGroup)
 
       # Check if it has worked

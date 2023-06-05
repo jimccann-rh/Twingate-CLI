@@ -56,7 +56,9 @@ with open(filename, 'r') as f:
       output, error = govc_runner("govc sso.user.id " + newUserUsername)
 
       testoutput = output.decode("utf-8")
-      if newGroup in testoutput:
+      print(testoutput)
+      print(newGroup)
+      if newGroup.strip() in testoutput:
         print("Yay, it worked:\n" + output.decode("utf-8") + "user password " + newUserPassword)
       else:
         print("Something went wrong :( " + error.decode("utf-8"))

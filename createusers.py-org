@@ -55,9 +55,7 @@ with open(filename, 'r') as f:
       # Check if it has worked
       output, error = govc_runner("govc sso.user.id " + newUserUsername)
 
-
       testoutput = output.decode("utf-8")
-
       print(testoutput)
       print(newGroup)
       if newGroup.strip() in testoutput:

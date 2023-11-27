@@ -19,9 +19,9 @@ logintenat = os.environ["TG_TENANT"]
 loginapi = os.environ["TG_API"]
 
 
-#loginoutput = subprocess.check_output('python3 ./tgcli.py auth login -t ' + logintenat + ' -a ' + loginapi, shell=True)
-#session = loginoutput.decode("utf-8").split(":")[1].strip()
-#print(session)
+loginoutput = subprocess.check_output('python3 ./tgcli.py auth login -t ' + logintenat + ' -a ' + loginapi, shell=True)
+session = loginoutput.decode("utf-8").split(":")[1].strip()
+print(session)
 
 for x in data:
 #    print(x["id"])

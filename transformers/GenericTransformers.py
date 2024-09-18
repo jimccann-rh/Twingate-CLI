@@ -30,20 +30,29 @@ def GetUpdateAsCsvNoNesting(jsonResults,objectname,columns):
     datarow.append(IsOk)
     IsError = item[columns[1]]
     IsError = datarow.append(IsError)
-
+    
     for col in columns[2:]:
         if IsOk:
             if not col == "token":
                 #print("col:"+col)
                 #Info = item['entity'][col]
+                #print("processing: "+str(col))
+                Info = ''
                 if '.' in col:
                     PathToInfo = col.split(".")
                     #print(PathToInfo)
-                    Info = item['entity'][PathToInfo[0]][PathToInfo[1]]
+                    logging.debug("path to info:" + str(PathToInfo))
+                    if 'entity' in item:
+                        Info = item['entity'][PathToInfo[0]][PathToInfo[1]]
+
+                    else:
+                        logging.debug("error: no 'entity' keyword present in JSON response.")
                 else:
+                    logging.debug("entity:" + str(item['entity']))
+                    logging.debug("entity:" + str(col))
                     Info = item['entity'][col]
 
-                #print(Info)
+               
                 if str(Info).startswith('{\'edges\':'):
                     IDs = []
                     for el in Info['edges']:
@@ -132,7 +141,14 @@ def GetListAsCsv(jsonResults,columns):
                 if item['node'] is not None:
                     if '.' in col:
                         PathToInfo = col.split(".")
-                        content = item['node'][PathToInfo[0]][PathToInfo[1]]
+                        logging.debug("path to info:" + str(PathToInfo))
+                        logging.debug("item:" + str(item['node']))
+                        l1_item = item['node'][PathToInfo[0]]
+                        if l1_item != None:
+                            content = item['node'][PathToInfo[0]][PathToInfo[1]]
+                        else:
+                            content = item['node'][PathToInfo[0]]
+                            logging.debug("Oops - looks like I couldnt find attribute " +str(PathToInfo[1])+" in " +str(item['node']))
                     else:
                         content = item['node'][col]
 

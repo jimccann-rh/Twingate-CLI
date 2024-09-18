@@ -12,17 +12,18 @@ import StdResponses
 
 def get_api_call_headers(token):
     DefaultHeaders = {
-        'X-API-KEY': token
+        'X-API-KEY': token,
+        'User-agent': 'TwingatePythonCLI/1.0.0'
     }
 
     return DefaultHeaders
 
 # Generic API Handler with embedded processing of Output
-def generic_api_call_handler(outputFormat,sessionname,get_res_func,res_data,df_transform_func):
+def generic_api_call_handler(sessionname,get_res_func,res_data):
         url,tenant = DataUtils.GetUrl(sessionname)
         TOKEN = DataUtils.GetAuthToken(tenant,sessionname)
 
-        isSupported,CallType,Headers,Body,variables = get_res_func(sessionname,TOKEN,res_data)
+        isSupported,CallType,Headers,Body,variables = get_res_func(TOKEN,res_data)
 
         FULLURL = url
         

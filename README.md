@@ -63,6 +63,16 @@ The output format can be set to CSV, DF (DataFrame) or JSON (Default) by using t
     * block
     * unblock
 
+  * dnssec
+    * show
+    * setAllowList
+    * setDenyList
+    
+  * snumber (serial number)
+    * list
+    * add
+    * remove
+
   * resource
     * list
     * show
@@ -103,6 +113,8 @@ The output format can be set to CSV, DF (DataFrame) or JSON (Default) by using t
   * network
     * list
     * show
+    * create
+    * delete
   
   * policy
     * list

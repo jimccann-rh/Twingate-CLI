@@ -12,6 +12,9 @@ import argparse
 import sys
 import logging
 import re
+import textwrap
+import array
+import json
 sys.path.insert(1, './logics')
 sys.path.insert(1, './validators')
 sys.path.insert(1, './libs')
@@ -24,12 +27,15 @@ import ResourcesLogics
 import UsersLogics
 import GroupsLogics
 import ProtocolValidators
+import RNValidators
 import ServiceAccountKeyValidators
 import UserValidators
 import GenericValidators
 import DataUtils
 import SAccountKeysLogics
 import SecPoliciesLogics
+import MappingsLogics
+import DNSSecLogics
 
 VERSION="1.0.0"
 
@@ -49,6 +55,13 @@ subparsers = parser.add_subparsers()
 #logging.basicConfig(level=logging.ERROR)
 
 
+# Unabashedly taken from https://stackoverflow.com/a/64102901 so that we can have newlines in our descriptive text.
+
+from argparse import ArgumentParser, HelpFormatter
+
+class RawFormatter(HelpFormatter):
+    def _fill_text(self, text, width, indent):
+        return "\n".join([textwrap.fill(line, width) for line in textwrap.indent(textwrap.dedent(text), indent).splitlines()])
 
 #####
 # AUTH Parser
@@ -321,7 +334,7 @@ connector_create_parser.add_argument('-s','--sendnotifications',type=str,default
 
 #####
 # User Parser
-# user <list>
+#    <list>
 #####
 
 def user_list(args):
@@ -445,6 +458,18 @@ user_update_state_parser.add_argument('-i','--itemid',type=str,default="", help=
 user_update_state_parser.add_argument('-s','--state',type=str,default="", help='state of user [ACTIVE, DISABLED]', dest="STATE")
 
 
+# Reset MFA For User
+def user_reset_mfa(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.ITEMID:
+        parser.error('no item ID passed')
+    UsersLogics.reset_mfa(args.OUTPUTFORMAT,args.SESSIONNAME,args.ITEMID)
+
+user_reset_mfa_parser = user_subparsers.add_parser('resetmfa')
+user_reset_mfa_parser.set_defaults(func=user_reset_mfa)
+user_reset_mfa_parser.add_argument('-i','--itemid',type=str,default="", help='user id', dest="ITEMID")
+
 #####
 # Group Parser
 # group <list>
@@ -563,7 +588,7 @@ def group_create(args):
     if args.RESOURCEIDS != []:
         AllIDs = args.RESOURCEIDS.split(",")
         args.RESOURCEIDS = AllIDs
-    GroupsLogics.item_create(args.OUTPUTFORMAT,args.SESSIONNAME,args.ITEMNAME,args.USERIDS,args.RESOURCEIDS)
+    GroupsLogics.item_create(args.OUTPUTFORMAT,args.SESSIONNAME,args.ITEMNAME,args.USERIDS,args.RESOURCEIDS, args.POLICYID)
 
 # group create
 group_create_parser = group_subparsers.add_parser('create')
@@ -571,6 +596,7 @@ group_create_parser.set_defaults(func=group_create)
 group_create_parser.add_argument('-g','--groupname',type=str,default="", help='group name', dest="ITEMNAME")
 group_create_parser.add_argument('-u','--userids',type=str,default=[], help='list of User IDs, ex: "id1","id2"', dest="USERIDS")
 group_create_parser.add_argument('-r','--resourceids',type=str,default=[], help='list of Resource IDs, ex: "id1","id2"', dest="RESOURCEIDS")
+group_create_parser.add_argument('-p','--securitypolicyid',type=str,default=[], help='default security policy ID for group', dest="POLICYID")
 
 # group <delete>
 
@@ -592,9 +618,9 @@ def group_assign_policy_resources(args):
     if not args.SESSIONNAME:
         parser.error('no session name passed')
     if not args.ITEMID:
-        parser.error('no item ID passed')
+        parser.error('no item ID passed [-g <group id>]')
     if not args.POLICYID:
-        parser.error('no policy ID passed')
+        parser.error('no policy ID passed [-p <security policy id>]')
     GroupsLogics.assign_policy_to_group(args.OUTPUTFORMAT,args.SESSIONNAME,args.ITEMID,args.POLICYID)
 
 # group assignPolicy
@@ -650,6 +676,7 @@ def resource_create(args):
     if args.GROUPIDS != []:
         AllIDs = args.GROUPIDS.split(",")
         args.GROUPIDS = AllIDs
+    
 
     isSuccess,ret = ProtocolValidators.ValidateRange(args.TCPRANGE)
     if not isSuccess:
@@ -678,17 +705,28 @@ def resource_create(args):
     isSuccess,ret = ProtocolValidators.ValidateRangeWithPolicy(str(args.UDPRANGE),args.UDPPOLICY)
     if not isSuccess:
         parser.error(ret)
+    
+    if not args.ISVISIBLE:
+        parser.error('no value for visibility passed')
+    isOK,Value = GenericValidators.checkStringAsBool(args.ISVISIBLE)
+    if not isOK:
+        parser.error('wrong value passed for parameter visibility (true or false)')
+    else:
+        args.ISVISIBLE=Value
 
     #exit(1)
-    ResourcesLogics.item_create(args.OUTPUTFORMAT,args.SESSIONNAME,args.ADDRESS,args.NAME,args.NETWORKID,args.GROUPIDS,not args.DISALLOWICMP,args.TCPPOLICY,args.TCPRANGE,args.UDPPOLICY,args.UDPRANGE)
+    ResourcesLogics.item_create(args.OUTPUTFORMAT,args.SESSIONNAME,args.ADDRESS,args.ALIAS,args.NAME,args.NETWORKID,args.GROUPIDS,not args.DISALLOWICMP,args.TCPPOLICY,args.TCPRANGE,args.UDPPOLICY,args.UDPRANGE,args.POLICYID, args.ISVISIBLE)
 
 resource_create_parser = resource_subparsers.add_parser('create')
 resource_create_parser.set_defaults(func=resource_create)
 
 resource_create_parser.add_argument('-a','--address',type=str,default="", help='resource address', dest="ADDRESS")
+resource_create_parser.add_argument('-l', '--alias', type=str,default="", help='resource alias fqdn', dest="ALIAS")
 resource_create_parser.add_argument('-n','--name',type=str,default="", help='resource name', dest="NAME")
 resource_create_parser.add_argument('-r','--networkid',type=str,default="", help='remote network ID', dest="NETWORKID")
+resource_create_parser.add_argument('-p','--policyid',type=str,default="", help='security policy id', dest="POLICYID")
 resource_create_parser.add_argument('-g','--groupids',type=str,default=[], help='list of Group IDs, ex: "id1","id2"', dest="GROUPIDS")
+resource_create_parser.add_argument('-v', '--isvisible', type=str, default="True", help='Should this be visible in the main resource list (default to true)', dest="ISVISIBLE")
 resource_create_parser.add_argument('-i','--icmp',type=bool,default=False, help='(Optional) Disallow ICMP Protocol', dest="DISALLOWICMP")
 resource_create_parser.add_argument('-t','--tcppolicy',type=str,default="ALLOW_ALL", help='(Optional) <ALLOW_ALL,RESTRICTED>, Default: ALLOW_ALL', dest="TCPPOLICY")
 resource_create_parser.add_argument('-c','--tcprange',type=str,default="[]", help='(Optional) <[[a,b],[c,d],..]>, Default: [], ex:[[22-50],[443,443],[654-987]]', dest="TCPRANGE")
@@ -789,6 +827,132 @@ resource_updatealias_parser.set_defaults(func=resource_update_alias)
 resource_updatealias_parser.add_argument('-i','--itemid',type=str,default="", help='item id', dest="ITEMID")
 resource_updatealias_parser.add_argument('-a','--alias',type=str, default="", help='alias', dest="ALIAS")
 
+# resource <policy update>
+def resource_update_policy(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.ITEMID:
+        parser.error('no item ID passed')
+    if not args.POLICY:
+        parser.error('no value for policy passed')
+
+    ResourcesLogics.update_policy(args.OUTPUTFORMAT,args.SESSIONNAME,args.ITEMID,args.POLICY)
+
+# resource policy update
+resource_updatepolicy_parser = resource_subparsers.add_parser('policy')
+resource_updatepolicy_parser.set_defaults(func=resource_update_policy)
+resource_updatepolicy_parser.add_argument('-i','--itemid',type=str,default="", help='resource id', dest="ITEMID")
+resource_updatepolicy_parser.add_argument('-p','--policyid',type=str, default="", help='security policy id', dest="POLICY")
+
+
+# resource <access remove>
+def resource_access_remove(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.ITEMID:
+        parser.error('no resource ID passed')
+    if not args.GROUPID:
+        parser.error('no value(s) for group or service account id passed')
+
+    ResourcesLogics.access_remove(args.OUTPUTFORMAT,args.SESSIONNAME,args.ITEMID,args.GROUPID)
+
+access_remove_description = """
+Given a Resource, remove Groups' and Service Accounts' access to the Resource. Any existing relationships outside what get specified here will remain in place.
+
+Example Usage: tgcli -s [session] resource access_remove -i RESOURCEID -g GROUPID1[,GROUPID2,SERVICEACCOUNTID1,ID2 .. if applicable] 
+"""
+
+# resource access_remove
+resource_access_remove_parser = resource_subparsers.add_parser('access_remove',description=access_remove_description, formatter_class=RawFormatter)
+resource_access_remove_parser.set_defaults(func=resource_access_remove)
+resource_access_remove_parser.add_argument('-i','--itemid',type=str,default="", help='resource id', dest="ITEMID")
+resource_access_remove_parser.add_argument('-g','--groupid',type=str, default="", help='group id(s) [multiple ids separated by commas ie. id1,id2]', dest="GROUPID")
+
+
+
+
+# resource <access_set>
+def resource_access_set(args):
+    policySplit = groupsSplit = ''
+    if args.GROUPID:
+        groupsSplit = args.GROUPID.split(',')
+    if args.POLICYID:
+        policySplit = args.POLICYID.split(',')
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.ITEMID:
+        parser.error('no resource ID passed')
+    if (args.GROUPID and not args.POLICYID):
+        parser.error('you cant have a group id with no policy id');
+    if not args.GROUPID and not args.SERVICEID:
+        parser.error('no value(s) for group id (-g [group id]) or service account ([-s [service account id]) passed')
+    if args.SERVICEID and args.POLICYID and not args.GROUPID:
+        parser.error('you cannot specify a security policy when adding access for a service account. Please do not use the -p flag if you\'re only adding access for service accounts.')
+    if len(policySplit) > 1 and len(groupsSplit) != len(policySplit):
+        parser.error('you have ' + str(len(groupsSplit)) + ' groups but ' + str(len(policySplit)) + ' policies. You must have a single policy or ' + str(len(groupsSplit)) + ' policies to use this function. (see help -h)')
+    ResourcesLogics.access_set(args.OUTPUTFORMAT,args.SESSIONNAME,args.ITEMID,args.GROUPID,args.SERVICEID,args.POLICYID,args.AUTOLOCKDAYS,args.EXPIRESAT)
+
+access_set_description = """
+Given a Resource, set which Groups or Service Account has access to the Resource and, for a Group, which Security Policy they use. Any existing Group or Service Account connections will be removed.
+
+Example Usage: tgcli -s [session] resource access_set -i RESOURCEID -g GROUPID1[,ID2,ID3 ... if applicable] -p POLICYID1[,ID2,ID3 ... if applicable] -s SERVICEACCOUNTID1[,ID2,ID3 ... if applicable] 
+
+** Note on policies: If only one policy ID is passed, it will be used for all groups specified. If multiple policies are passed, you must have a matching number of groups and policies, and the policies will be applied to the corresponding group (ie GROUPID1 will get POLICYID1, GROUPID2 will get POLICYID2, etc).
+If you do not have an equal count of group and policy IDs, the command will fail. Service accounts cannot have policies attached to them and do not require additional input.
+"""
+
+# resource access_set
+resource_access_set_parser = resource_subparsers.add_parser('access_set',description=access_set_description, formatter_class=RawFormatter)
+resource_access_set_parser.set_defaults(func=resource_access_set)
+resource_access_set_parser.add_argument('-i','--itemid',type=str,default="", help='resource id', dest="ITEMID")
+resource_access_set_parser.add_argument('-g','--group',type=str, default="", help='group id', dest="GROUPID")
+resource_access_set_parser.add_argument('-p','--policy',type=str, default="", help='security policy id', dest="POLICYID")
+resource_access_set_parser.add_argument('-s','--service',type=str, default="", help='service account id', dest="SERVICEID")
+resource_access_set_parser.add_argument('-a','--autolock',type=int, default=None, help='usage based autolock duration (in days from 1-365)', dest="AUTOLOCKDAYS")
+resource_access_set_parser.add_argument('-e','--expiresat',type=str, default="", help='expiry date for this access as iso8601 datetime string ie 2024-03-14T20:20:32-07:00', dest="EXPIRESAT")
+
+
+# resource <access add>
+def resource_access_add(args):
+    policySplit = groupsSplit = ''
+    if args.GROUPID:
+        groupsSplit = args.GROUPID.split(',')
+    if args.POLICYID:
+        policySplit = args.POLICYID.split(',')
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.ITEMID:
+        parser.error('no resource ID passed')
+    if (args.GROUPID and not args.POLICYID):
+        parser.error('you cant have a group id with no policy id');
+    if not args.GROUPID and not args.SERVICEID:
+        parser.error('no value(s) for group id (-g [group id]) or service account ([-s [service account id]) passed')
+    if args.SERVICEID and args.POLICYID and not args.GROUPID:
+        parser.error('you cannot specify a security policy when adding access for a service account. Please do not use the -p flag if you\'re only adding access for service accounts.')
+    if len(policySplit) > 1 and len(groupsSplit) != len(policySplit):
+        parser.error('you have ' + str(len(groupsSplit)) + ' groups but ' + str(len(policySplit)) + ' policies. You must have a single policy or ' + str(len(groupsSplit)) + ' policies to use this function. (see help -h)')
+  
+
+    ResourcesLogics.access_add(args.OUTPUTFORMAT,args.SESSIONNAME,args.ITEMID,args.GROUPID,args.SERVICEID,args.POLICYID,args.AUTOLOCKDAYS,args.EXPIRESAT)
+
+# resource add access
+access_add_description = """
+Given a Resource, add Groups or Service Accounts with access to the Resource and, for Groups, define which Security Policy they use. This is additive and will not remove any existing relationships for Groups/Service Accounts not used here.
+
+Example Usage: tgcli -s [session] resource access_add -i RESOURCEID -g GROUPID1[,ID2,ID3 ... if applicable] -p POLICYID1[,ID2,ID3 ... if applicable] -s SERVICEACCOUNTID1[,ID2,ID3 ... if applicable] 
+
+** Note on policies: If only one policy ID is passed, it will be used for all groups specified. If multiple policies are passed, you must have a matching number of groups and policies, and the policies will be applied to the corresponding group (ie GROUPID1 will get POLICYID1, GROUPID2 will get POLICYID2, etc).
+If you do not have an equal count of group and policy IDs, the command will fail. Service accounts cannot have policies attached to them and do not require additional input.
+"""
+resource_access_add_parser = resource_subparsers.add_parser('access_add', description=access_add_description, formatter_class=RawFormatter)
+resource_access_add_parser.set_defaults(func=resource_access_add)
+resource_access_add_parser.add_argument('-i','--itemid',type=str,default="", help='resource id', dest="ITEMID")
+resource_access_add_parser.add_argument('-g','--group',type=str, default="", help='group id(s)', dest="GROUPID")
+resource_access_add_parser.add_argument('-p','--policy',type=str, default="", help='security policy id(s)', dest="POLICYID")
+resource_access_add_parser.add_argument('-s','--service',type=str, default="", help='service account id', dest="SERVICEID")
+resource_access_add_parser.add_argument('-a','--autolock',type=int, default=None, help='usage based autolock duration (in days)', dest="AUTOLOCKDAYS")
+resource_access_add_parser.add_argument('-e','--expiresat',type=str, default="", help='expiry date for this access as iso8601 datetime string ie 2024-03-14T20:20:32-07:00', dest="EXPIRESAT")
+
 #####
 # Remote Network Parser
 # network <list>
@@ -821,6 +985,46 @@ def network_show(args):
 network_show_parser = network_subparsers.add_parser('show')
 network_show_parser.set_defaults(func=network_show)
 network_show_parser.add_argument('-i','--itemid',type=str,default="", help='item id', dest="ITEMID")
+
+# network <create>
+
+def network_create(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.NAME:
+        parser.error('name not passed')
+    isOK,Value = GenericValidators.checkStringAsBool(args.ISACTIVE)
+    if not isOK:
+        parser.error('wrong value passed for parameter updateNotifications (true or false)')
+    isSuccess,checked_location = RNValidators.ValidateRNLocation(args.LOCATION)
+    if not isSuccess:
+        parser.error(str(args.LOCATION)+" is incorrect, possible values are: "+checked_location)
+
+    RemoteNetworksLogics.item_create(args.OUTPUTFORMAT,args.SESSIONNAME,args.NAME,checked_location,Value)
+
+# network create
+network_create_parser = network_subparsers.add_parser('create')
+network_create_parser.set_defaults(func=network_create)
+network_create_parser.add_argument('-n','--name',type=str,default="", help='Remote Network name', dest="NAME")
+network_create_parser.add_argument('-l','--location',type=str,default="OTHER", help='location, possible values: [OTHER, AWS, AZURE, GOOGLE_CLOUD, ON_PREMISE]', dest="LOCATION")
+network_create_parser.add_argument('-a','--active',type=str,default="", help='Create the Remote Network in active or inactive state', dest="ISACTIVE")
+
+
+# network <delete>
+
+def network_delete(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.ID:
+        parser.error('id not passed')
+
+    RemoteNetworksLogics.item_delete(args.OUTPUTFORMAT,args.SESSIONNAME,args.ID)
+
+# network delete
+network_delete_parser = network_subparsers.add_parser('delete')
+network_delete_parser.set_defaults(func=network_delete)
+network_delete_parser.add_argument('-i','--id',type=str,default="", help='item id', dest="ID")
+
 
 #####
 # Service Account Parser
@@ -1021,6 +1225,57 @@ saccount_key_rename_parser.add_argument('-n','--itemname',type=str,default="", h
 
 
 #####
+# 
+# Serial Number Parser
+# 
+#####
+
+# snumber commands
+serialnumber_parser = subparsers.add_parser('snumber')
+serialnumber_subparsers = serialnumber_parser.add_subparsers()
+
+# serial numbers list
+
+def snumbers_list(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    DevicesLogics.snumber_list(args.OUTPUTFORMAT,args.SESSIONNAME)
+
+# serial numbers add
+snumber_list_parser = serialnumber_subparsers.add_parser('list')
+snumber_list_parser.set_defaults(func=snumbers_list)
+
+# serial numbers add
+
+def snumbers_add(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.SNUMBERS:
+        parser.error('no serial numbers passed')
+    SerialNumbers = args.SNUMBERS.split(",")
+    DevicesLogics.add_serialnumbers(args.OUTPUTFORMAT,args.SESSIONNAME,SerialNumbers)
+
+# serial numbers add
+snumber_add_parser = serialnumber_subparsers.add_parser('add')
+snumber_add_parser.set_defaults(func=snumbers_add)
+snumber_add_parser.add_argument('-n','--snumbers',type=str,default="", help='<serial number 1>,<serial number 2>,etc.', dest="SNUMBERS")
+
+# serial numbers remove
+
+def snumbers_remove(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.SNUMBERS:
+        parser.error('no serial numbers passed')
+    SerialNumbers = args.SNUMBERS.split(",")
+    DevicesLogics.remove_serialnumbers(args.OUTPUTFORMAT,args.SESSIONNAME,SerialNumbers)
+
+# serial numbers remove
+snumber_remove_parser = serialnumber_subparsers.add_parser('remove')
+snumber_remove_parser.set_defaults(func=snumbers_remove)
+snumber_remove_parser.add_argument('-n','--snumbers',type=str,default="", help='<serial number 1>,<serial number 2>,etc.', dest="SNUMBERS")
+
+#####
 # Security Policies Parser
 # policy <list>
 #####
@@ -1052,8 +1307,9 @@ policy_show_parser = secpol_subparsers.add_parser('show')
 policy_show_parser.set_defaults(func=secpol_show)
 policy_show_parser.add_argument('-i','--itemid',type=str,default="", help='item id', dest="ITEMID")
 
+# the following logic is no longer applicable since Policies are now applied to Resources and not Groups
+'''
 # policy <addGroups>
-
 def secpol_add_groups(args):
     if not args.SESSIONNAME:
         parser.error('no session name passed')
@@ -1105,6 +1361,101 @@ policy_setgroups_parser = secpol_subparsers.add_parser('setGroups')
 policy_setgroups_parser.set_defaults(func=secpol_set_groups)
 policy_setgroups_parser.add_argument('-i','--policyid',type=str,default="", help='policy id', dest="ITEMID")
 policy_setgroups_parser.add_argument('-g','--groupids',type=str,default=[], help='list of Group IDs, ex: "id1","id2"', dest="GROUPIDS")
+'''
+
+
+#####
+#
+# DNS Security Parser
+# 
+#####
+
+# DNS Security commands
+dnssec_parser = subparsers.add_parser('dnssec')
+dnssec_subparsers = dnssec_parser.add_subparsers()
+
+# DNS Security <show>
+
+def dnssec_show(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+
+    DNSSecLogics.item_show(args.OUTPUTFORMAT,args.SESSIONNAME)
+
+# DNS Security show
+dnssec_show_parser = dnssec_subparsers.add_parser('show')
+dnssec_show_parser.set_defaults(func=dnssec_show)
+
+# DNS Security <SetAllowList>
+
+def dnssec_allow_list_resources(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.CSVDOMAINS:
+        parser.error('no Domains passed')
+    Domains = args.CSVDOMAINS.split(",")
+    Domains_str = json.dumps(Domains)
+
+    DNSSecLogics.set_allow_list(args.OUTPUTFORMAT,args.SESSIONNAME,Domains_str)
+
+# DNS Security <SetAllowList>
+dnssec_allowlist_parser = dnssec_subparsers.add_parser('setAllowList')
+dnssec_allowlist_parser.set_defaults(func=dnssec_allow_list_resources)
+dnssec_allowlist_parser.add_argument('-d','--domains',type=str,default="", help='CSV list of domains', dest="CSVDOMAINS")
+
+# DNS Security <SetDenyList>
+
+def dnssec_deny_list_resources(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.CSVDOMAINS:
+        parser.error('no Domains passed')
+
+    Domains = args.CSVDOMAINS.split(",")
+    Domains_str = json.dumps(Domains)
+
+    DNSSecLogics.set_deny_list(args.OUTPUTFORMAT,args.SESSIONNAME,Domains_str)
+
+# DNS Security <SetAllowList>
+dnssec_denylist_parser = dnssec_subparsers.add_parser('setDenyList')
+dnssec_denylist_parser.set_defaults(func=dnssec_deny_list_resources)
+dnssec_denylist_parser.add_argument('-d','--domains',type=str,default="", help='CSV list of domains', dest="CSVDOMAINS")
+
+#####
+# Mapping Parser
+# key <cmd>
+#####
+
+# mappings commands
+mappings_parser = subparsers.add_parser('mappings')
+mappings_subparsers = mappings_parser.add_subparsers()
+
+# get user based mapping
+def user_to_resource_mappings(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+    if not args.EMAILADDR:
+        parser.error('no email address passed')
+
+    MappingsLogics.get_user_mappings(args.OUTPUTFORMAT,args.SESSIONNAME,args.EMAILADDR,args.FQDN)
+
+mappings_user_res_parser = mappings_subparsers.add_parser('user-resource')
+mappings_user_res_parser.set_defaults(func=user_to_resource_mappings)
+mappings_user_res_parser.add_argument('-e','--email',type=str,default="", help='user email address', dest="EMAILADDR")
+mappings_user_res_parser.add_argument('-f','--fqdn',type=str,default="", help='[optional] FQDN to use and analyze against available resources', dest="FQDN")
+
+
+# get user - RN based mapping
+def user_to_rn_mappings(args):
+    if not args.SESSIONNAME:
+        parser.error('no session name passed')
+
+    MappingsLogics.get_user_rn_mapping(args.OUTPUTFORMAT,args.SESSIONNAME)
+
+# saccount key show
+mappings_user_res_parser = mappings_subparsers.add_parser('user-network')
+mappings_user_res_parser.set_defaults(func=user_to_rn_mappings)
+
 
 DebugLevels = ["ERROR","DEBUG","WARNING","INFO"]
 if __name__ == '__main__':

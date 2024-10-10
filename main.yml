@@ -11,20 +11,6 @@
       ansible.builtin.pip:
         name:
           - pandas
-#          - csv
-#          - subprocess
-#          - os
-#          - random
-#          - string
-#          - re
-#          - secrets
-#          - json
-#          - argparse
-#          - time
-#          - datetime
-
-#    - name: Install pandas and csv modules
-#      command: pip install csv subprocess os random string re secrets json argparse time datetime
 
     - name: Output var
       ansible.builtin.debug:
@@ -58,6 +44,7 @@
       # environment:
       #   TG_TENANT: "{{ tg_tenant }}"
       #   TG_API: "{{ custom_token }}"
+      no_logs: true
       register: script_output
 
     - name: Output Python script

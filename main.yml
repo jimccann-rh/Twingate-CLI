@@ -6,6 +6,15 @@
     TG_API: "{{ custom_token }}"
 
   tasks:
+
+    - name: Output var
+      ansible.builtin.debug:
+        msg: "Script output: {{ tg_tenant }}"
+
+    - name: Basic usage
+      ansible.builtin.debug:
+        msg: "'{{ lookup('ansible.builtin.env', 'TG_TENAT') }}'"
+
     - name: Clone the Git repository
       ansible.builtin.git:
         repo: https://github.com/jimccann-rh/Twingate-CLI.git

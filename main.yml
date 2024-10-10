@@ -1,0 +1,32 @@
+---
+- name: Run Python script
+  hosts: localhost  # Adjust the host as needed
+  environment:
+    TG_TENAT: "{{ tg_tenant }}"
+    TG_API: "{{ custom_token }}"
+
+  tasks:
+    - name: Clone the Git repository
+      ansible.builtin.git:
+        repo: https://github.com/jimccann-rh/Twingate-CLI.git
+        dest: /tmp/Twingate-CLI
+        version: latest  # Or specify a specific version
+        force: true
+
+    - name: Check if repository was cloned successfully
+      ansible.builtin.stat:
+        path: /tmp/Twingate-CLI/.git
+      register: git_repo_created
+
+    - name: Fail if repository was not cloned
+      ansible.builtin.fail:
+        msg: "Failed to clone Git repository"
+      when: not git_repo_created.stat.exists
+
+    - name: Execute Python script
+      ansible.builtin.script: /tmp/Twingate-CLI/deletependingusertimelimit.py
+      register: script_output
+
+    - name: Output Python script
+      ansible.builtin.debug:
+        msg: "Script output: {{ script_output.stdout }}"

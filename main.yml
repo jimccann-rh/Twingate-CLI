@@ -44,7 +44,7 @@
       # environment:
       #   TG_TENANT: "{{ tg_tenant }}"
       #   TG_API: "{{ custom_token }}"
-      no_logs: true
+      no_log: true
       register: script_output
 
     - name: Output Python script

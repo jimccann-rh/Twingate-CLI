@@ -7,6 +7,10 @@
 
   tasks:
 
+
+    - name: Install pandas and csv modules
+      command: pip install csv subprocess os random string re secrets json argparse time datetime
+
     - name: Output var
       ansible.builtin.debug:
         msg: "Script output: {{ tg_tenant }}"

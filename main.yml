@@ -12,7 +12,7 @@
         name:
 #          - csv
 #          - subprocess
-          - os
+#          - os
           - random
           - string
           - re

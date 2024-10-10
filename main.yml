@@ -13,7 +13,7 @@
 
     - name: Basic usage
       ansible.builtin.debug:
-        msg: "'{{ lookup('ansible.builtin.env', 'TG_TENAT') }}'"
+        msg: "'{{ lookup('ansible.builtin.env', 'TG_TENANT') }}'"
 
     - name: Clone the Git repository
       ansible.builtin.git:

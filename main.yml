@@ -33,6 +33,9 @@
 
     - name: Execute Python script
       ansible.builtin.script: /tmp/Twingate-CLI/deletependingusertimelimit.py
+      environment:
+        TG_TENAT: "{{ tg_tenant }}"
+        TG_API: "{{ custom_token }}"
       register: script_output
 
     - name: Output Python script

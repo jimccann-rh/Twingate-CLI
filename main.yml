@@ -10,7 +10,7 @@
     - name: Install multi python packages with version specifiers
       ansible.builtin.pip:
         name:
-          - csv
+#          - csv
           - subprocess
           - os
           - random

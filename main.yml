@@ -7,20 +7,20 @@
 
   tasks:
 
-    - name: Install multi python packages with version specifiers
-      ansible.builtin.pip:
-        name:
-#          - csv
-#          - subprocess
-#          - os
-          - random
-          - string
-          - re
-          - secrets
-          - json
-          - argparse
-          - time
-          - datetime
+#    - name: Install multi python packages with version specifiers
+#      ansible.builtin.pip:
+#        name:
+##          - csv
+##          - subprocess
+##          - os
+#          - random
+#          - string
+#          - re
+#          - secrets
+#          - json
+#          - argparse
+#          - time
+#          - datetime
 
 #    - name: Install pandas and csv modules
 #      command: pip install csv subprocess os random string re secrets json argparse time datetime

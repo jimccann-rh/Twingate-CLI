@@ -10,8 +10,7 @@
       ansible.builtin.git:
         repo: https://github.com/jimccann-rh/Twingate-CLI.git
         dest: /tmp/Twingate-CLI
-        version: latest  # Or specify a specific version
-        force: true
+        # force: true
 
     - name: Check if repository was cloned successfully
       ansible.builtin.stat:

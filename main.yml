@@ -32,7 +32,7 @@
       when: not git_repo_created.stat.exists
 
     - name: Execute Python script
-      ansible.builtin.shell: /tmp/Twingate-CLI/deletependingusertimelimit.py
+      ansible.builtin.shell: python /tmp/Twingate-CLI/deletependingusertimelimit.py
       # ansible.builtin.script: /tmp/Twingate-CLI/deletependingusertimelimit.py
       environment:
         TG_TENAT: "{{ tg_tenant }}"

@@ -37,11 +37,11 @@ with open("user_data.txt", "r") as user_data_file:
             print(f"Status: {user_info[4]}")
             print(f"Last Resource Access: {user_info[5]}\n")
 
-        id = user_info[0]
-        time.sleep(10) # slow down for api throttle
-        removeuser = ["python3", "./tgcli.py", "-s", session, "user", "delete", "-i", id]
-        subprocess.call(removeuser)
-        print(removeuser)
+            id = user_info[0]
+            time.sleep(10) # slow down for api throttle
+            removeuser = ["python3", "./tgcli.py", "-s", session, "user", "delete", "-i", id]
+            subprocess.call(removeuser)
+            print(removeuser)
 
 animals = ['BlueFly', 'BlackEel', 'RedBoa', 'BlackBat', 'BlackBoa', 'OrangeFox', 'OrangeApe', 'GreenApe', 'WhiteApe', 'PurpleElk', 'RedCow', 'GreenFox', 'YellowFox', 'PinkBoa', 'YellowElk', 'PinkFox', 'GreenBoa', 'RedBat', 'PurpleApe', 'OrangeBat', 'YellowEel', 'OrangeYak', 'RedDog', 'PinkEel', 'PurpleBat', 'OrangeElk', 'BlueBoa', 'OrangeEel', 'GreenCat', 'WhiteDog', 'OrangeCat', 'BlueCat', 'YellowCat', 'GreenCow', 'BlackYak', 'RedCat', 'WhiteFox']
 

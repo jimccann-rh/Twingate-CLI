@@ -59,7 +59,7 @@ for element in json_data:
     email = node["user"]["email"]
     state = node["activeState"]
     slogin = node["lastSuccessfulLoginAt"]
-    print(f"ID: {id} {email} {state} {slogin}")
+    #print(f"ID: {id} {email} {state} {slogin}")
 
     if state == "ACTIVE":
       print(f"ID: {id} EMAIL: {email} STATE: {state} DATE: {slogin}")

@@ -10,7 +10,7 @@
     - name: Install multi python packages with version specifiers
       ansible.builtin.pip:
         name:
-          - pandas
+          - pandas==2.3.2
 
     - name: Output var
       ansible.builtin.debug:

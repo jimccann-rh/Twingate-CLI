@@ -1,2 +1,0 @@
-User ID,Email,Last name,First name,Status,Last resource access (timestamp)
-abcdefghaijklm=,user@mail.com,lastname,firstname,Active,2023-08-07T13:46:53.163000+00:00

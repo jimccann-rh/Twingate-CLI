@@ -13,6 +13,11 @@ import time
 import datetime
 
 
+# CLI arguments
+parser = argparse.ArgumentParser(description="List and delete long-pending Twingate users")
+parser.add_argument("-v", "--verbose", action="store_true", help="Print informational logs")
+args = parser.parse_args()
+
 #Twingate-CLI
 
 logintenat = os.environ["TG_TENANT"]
@@ -37,7 +42,8 @@ json_data = json.loads(output)
 output_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "user_list.json")
 with open(output_file_path, "w", encoding="utf-8") as outfile:
     json.dump(json_data, outfile, ensure_ascii=False, indent=2)
-print(f"Wrote user list JSON to: {output_file_path}")
+if args.verbose:
+    print(f"Wrote user list JSON to: {output_file_path}")
 
 
 def check_timestamp(timestamp):
@@ -76,9 +82,9 @@ for element in json_data:
 
     if check_timestamp(timestamp):
       # Run your task here
-      #print("Timestamp is over 24 hours old. Running task...")
-      print("Timestamp is over 30 days old. Running task...")
-      #print(f"createdAt: {createdat} {id} {email} {state}")
+      if args.verbose:
+        print("Timestamp is over 30 days old. Running task...")
+        print(f"createdAt: {createdat} {id} {email} {state}")
       if state == "PENDING":
         print("DELETE Account pending to long")
         print(f"createdAt: {createdat} {id} {email} {state}")
@@ -89,8 +95,9 @@ for element in json_data:
 
     else:
       #print("Timestamp is not over 24 hours old. Skipping task.")
-      print("Timestamp is not over 30 days old. Skipping task.")
-      #print(f"createdAt: {createdat} {id} {email} {state}")
+      if args.verbose:
+        print("Timestamp is not over 30 days old. Skipping task.")
+        print(f"createdAt: {createdat} {id} {email} {state}")
 
 
 animals = ['BlueFly', 'BlackEel', 'RedBoa', 'BlackBat', 'BlackBoa', 'OrangeFox', 'OrangeApe', 'GreenApe', 'WhiteApe', 'PurpleElk', 'RedCow', 'GreenFox', 'YellowFox', 'PinkBoa', 'YellowElk', 'PinkFox', 'GreenBoa', 'RedBat', 'PurpleApe', 'OrangeBat', 'YellowEel', 'OrangeYak', 'RedDog', 'PinkEel', 'PurpleBat', 'OrangeElk', 'BlueBoa', 'OrangeEel', 'GreenCat', 'WhiteDog', 'OrangeCat', 'BlueCat', 'YellowCat', 'GreenCow', 'BlackYak', 'RedCat', 'WhiteFox']
@@ -99,6 +106,6 @@ animals = ['BlueFly', 'BlackEel', 'RedBoa', 'BlackBat', 'BlackBoa', 'OrangeFox',
 #for animal in animals:
 #   subprocess.call(["python3", "./tgcli.py", "auth", "logout", "-s", animal])
 
-subprocess.call(["python3", "./tgcli.py", "auth", "logout", "-s", session])
+subprocess.call(["python3", "./tgcli.py", "auth", "logout", "-s", session], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 

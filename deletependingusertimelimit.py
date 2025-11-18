@@ -33,6 +33,12 @@ json_data = json.loads(output)
 # Print the JSON data
 #print(json.dumps(json_data, indent=4))
 
+# Dump the JSON data to a file alongside this script
+output_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "user_list.json")
+with open(output_file_path, "w", encoding="utf-8") as outfile:
+    json.dump(json_data, outfile, ensure_ascii=False, indent=2)
+print(f"Wrote user list JSON to: {output_file_path}")
+
 
 def check_timestamp(timestamp):
     created_at = datetime.datetime.fromisoformat(timestamp)
@@ -60,6 +66,10 @@ for element in json_data:
     state = node["state"]
     #print(f"createdAt: {createdat} {id} {email} {state}")
 
+    # Print any users currently in PENDING state
+    if state == "PENDING":
+      print(f"PENDING user: {email} {id} createdAt: {createdat}")
+
     #timestamp = datainputjson
     timestamp = createdat 
     #print(f"{timestamp} what time is it")
@@ -68,10 +78,11 @@ for element in json_data:
       # Run your task here
       #print("Timestamp is over 24 hours old. Running task...")
       print("Timestamp is over 30 days old. Running task...")
+      #print(f"createdAt: {createdat} {id} {email} {state}")
       if state == "PENDING":
         print("DELETE Account pending to long")
         print(f"createdAt: {createdat} {id} {email} {state}")
-        #time.sleep(10)
+        time.sleep(5)
         removeuser = ["python3", "./tgcli.py", "-s", session, "user", "delete", "-i", id]
         subprocess.call(removeuser)
         print(removeuser)
@@ -79,6 +90,7 @@ for element in json_data:
     else:
       #print("Timestamp is not over 24 hours old. Skipping task.")
       print("Timestamp is not over 30 days old. Skipping task.")
+      #print(f"createdAt: {createdat} {id} {email} {state}")
 
 
 animals = ['BlueFly', 'BlackEel', 'RedBoa', 'BlackBat', 'BlackBoa', 'OrangeFox', 'OrangeApe', 'GreenApe', 'WhiteApe', 'PurpleElk', 'RedCow', 'GreenFox', 'YellowFox', 'PinkBoa', 'YellowElk', 'PinkFox', 'GreenBoa', 'RedBat', 'PurpleApe', 'OrangeBat', 'YellowEel', 'OrangeYak', 'RedDog', 'PinkEel', 'PurpleBat', 'OrangeElk', 'BlueBoa', 'OrangeEel', 'GreenCat', 'WhiteDog', 'OrangeCat', 'BlueCat', 'YellowCat', 'GreenCow', 'BlackYak', 'RedCat', 'WhiteFox']
